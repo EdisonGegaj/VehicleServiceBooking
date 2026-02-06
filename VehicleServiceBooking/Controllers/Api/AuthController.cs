@@ -68,7 +68,10 @@ public class AuthController : ControllerBase
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
-            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+            return BadRequest(new
+            {
+                errors = result.Errors.Select(e => e.Description).ToArray()
+            });
         }
 
         await EnsureRoleExistsAsync(DbInitializer.ClientRole);
