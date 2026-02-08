@@ -169,14 +169,9 @@ builder.Services.AddScoped<JwtHelper>();
 var app = builder.Build();
 
 
-// DB SEED
-using (var scope = app.Services.CreateScope())
-{
-    await DbInitializer.InitializeAsync(scope.ServiceProvider);
-}
+await DbInitializer.InitializeAsync(app.Services);
 
 
-// MIDDLEWARE PIPELINE
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

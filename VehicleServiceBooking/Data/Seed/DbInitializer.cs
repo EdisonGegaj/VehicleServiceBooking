@@ -19,24 +19,20 @@ public static class DbInitializer
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        try
+      
+        if (context.Database.IsRelational())
         {
-            if (context.Database.CanConnect())
-            {
-                await context.Database.MigrateAsync();
-            }
-        }
-        catch
-        {
+            await context.Database.MigrateAsync();
         }
 
         await SeedRolesAsync(roleManager);
+
         await SeedManagerUserAsync(userManager);
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
     {
-        string[] roles = { ManagerRole, MechanicRole, ClientRole };
+        var roles = new[] { ManagerRole, MechanicRole, ClientRole };
 
         foreach (var role in roles)
         {
@@ -53,24 +49,29 @@ public static class DbInitializer
         const string managerPassword = "Manager@123";
 
         var manager = await userManager.FindByEmailAsync(managerEmail);
-        if (manager == null)
-        {
-            manager = new ApplicationUser
-            {
-                UserName = managerEmail,
-                Email = managerEmail,
-                EmailConfirmed = true,
-                FirstName = "System",
-                LastName = "Manager",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
+        if (manager != null)
+            return;
 
-            var result = await userManager.CreateAsync(manager, managerPassword);
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(manager, ManagerRole);
-            }
+        manager = new ApplicationUser
+        {
+            UserName = managerEmail,
+            Email = managerEmail,
+            NormalizedUserName = managerEmail.ToUpper(),
+            NormalizedEmail = managerEmail.ToUpper(),
+            EmailConfirmed = true,
+            FirstName = "System",
+            LastName = "Manager",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(manager, managerPassword);
+        if (!result.Succeeded)
+        {
+            throw new Exception(
+                $"Failed to create Manager user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
+
+        await userManager.AddToRoleAsync(manager, ManagerRole);
     }
 }
