@@ -252,7 +252,6 @@ namespace VehicleServiceBooking.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ClientId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ClientNotes")
@@ -269,10 +268,10 @@ namespace VehicleServiceBooking.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("ServiceCenterId")
+                    b.Property<int?>("ServiceCenterId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ServiceTypeId")
+                    b.Property<int?>("ServiceTypeId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -281,7 +280,7 @@ namespace VehicleServiceBooking.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("VehicleId")
+                    b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -595,7 +594,6 @@ namespace VehicleServiceBooking.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClientId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Color")
@@ -789,8 +787,7 @@ namespace VehicleServiceBooking.Migrations
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.ApplicationUser", "Client")
                         .WithMany("Bookings")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.Mechanic", "Mechanic")
                         .WithMany("Bookings")
@@ -800,20 +797,17 @@ namespace VehicleServiceBooking.Migrations
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany("Bookings")
                         .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.ServiceType", "ServiceType")
                         .WithMany("Bookings")
                         .HasForeignKey("ServiceTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.Vehicle", "Vehicle")
                         .WithMany("Bookings")
                         .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
 
@@ -893,8 +887,7 @@ namespace VehicleServiceBooking.Migrations
                     b.HasOne("VehicleServiceBooking.Web.Models.Entities.ApplicationUser", "Client")
                         .WithMany("Vehicles")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Client");
                 });

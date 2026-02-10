@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
                 {user?.roles.includes('Client') && (
                   <>
                     <Link to="/client" className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium">
-                      Dashboard
+                     
                     </Link>
                   </>
                 )}
