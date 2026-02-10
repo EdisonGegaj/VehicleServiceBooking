@@ -58,18 +58,41 @@ const ClientDashboard = () => {
   };
 
   const handleSaveVehicle = async (data) => {
-    try {
-      if (editingVehicle) {
-        await vehicleService.update(editingVehicle.id, data);
-      } else {
-        await vehicleService.create(data);
-      }
-      setShowVehicleModal(false);
-      loadData();
-    } catch (error) {
-      alert('Error saving vehicle');
+  try {
+    
+    const vehicleData = {
+      Make: data.make,
+      Model: data.model,
+      LicensePlate: data.licensePlate,
+      Year: data.year ? parseInt(data.year) : null,
+      Color: data.color || "",
+      VIN: data.vin || "" 
+    };
+
+    console.log("Duke dërguar makinën:", vehicleData);
+
+    if (editingVehicle) {
+      await vehicleService.update(editingVehicle.id, vehicleData);
+    } else {
+      await vehicleService.create(vehicleData);
     }
-  };
+    
+    setShowVehicleModal(false);
+    loadData();
+  } catch (error) {
+    const serverErrors = error.response?.data?.errors;
+    console.error('Gabimet specifike:', serverErrors);
+    
+    if (serverErrors) {
+      const errorMessages = Object.entries(serverErrors)
+        .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+        .join('\n');
+      alert("Validimi dështoi:\n" + errorMessages);
+    } else {
+      alert("Gabim gjatë ruajtjes së makinës.");
+    }
+  }
+};
 
   const handleCreateBooking = () => {
     setShowBookingModal(true);
