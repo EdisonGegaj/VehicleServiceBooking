@@ -20,17 +20,17 @@ public class Booking
     [Key]
     public int Id { get; set; }
 
-    [Required]
-    public string ClientId { get; set; } = string.Empty;
+    
+    public string? ClientId { get; set; }
 
-    [Required]
-    public int VehicleId { get; set; }
+    
+    public int? VehicleId { get; set; }
 
-    [Required]
-    public int ServiceTypeId { get; set; }
+    
+    public int? ServiceTypeId { get; set; }
 
-    [Required]
-    public int ServiceCenterId { get; set; }
+    
+    public int? ServiceCenterId { get; set; }
 
     public int? MechanicId { get; set; }
 

@@ -32,8 +32,8 @@ public class Vehicle
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [Required]
-    public string ClientId { get; set; } = string.Empty;
+    
+    public string? ClientId { get; set; } = string.Empty;
 
     [JsonIgnore]
     [ForeignKey(nameof(ClientId))]

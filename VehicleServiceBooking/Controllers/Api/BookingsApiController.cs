@@ -21,10 +21,14 @@ public class BookingsApiController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Booking>>> GetBookings([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+    public async Task<ActionResult<IEnumerable<object>>> GetBookings([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        IQueryable<Booking> query = _context.Bookings;
+
+        IQueryable<Booking> query = _context.Bookings
+            .Include(b => b.Client)
+            .Include(b => b.Mechanic)!.ThenInclude(m => m.User)
+            .Include(b => b.Vehicle);
 
         if (User.IsInRole("Manager"))
         {
@@ -42,7 +46,7 @@ public class BookingsApiController : ControllerBase
             }
             else
             {
-                return Ok(new List<Booking>());
+                return Ok(new List<object>());
             }
         }
         else if (User.IsInRole("Client"))
@@ -50,7 +54,38 @@ public class BookingsApiController : ControllerBase
             query = query.Where(b => b.ClientId == userId);
         }
 
-        return await query.OrderByDescending(b => b.BookingDate).ThenBy(b => b.BookingTime).ToListAsync();
+        var result = await query
+            .OrderByDescending(b => b.BookingDate)
+            .ThenBy(b => b.BookingTime)
+            .Select(b => new
+            {
+                b.Id,
+                b.BookingDate,
+                b.BookingTime,
+                b.Status,
+                b.ServiceCenterId,
+                b.VehicleId,
+                b.ServiceTypeId,
+                b.MechanicId,
+                Client = b.Client == null ? null : new
+                {
+                    b.Client.FirstName,
+                    b.Client.LastName
+                },
+                Vehicle = b.Vehicle == null ? null : new
+                {
+                    LicensePlate = b.Vehicle.LicensePlate
+                },
+                Mechanic = b.Mechanic == null || b.Mechanic.User == null ? null : new
+                {
+                    FirstName = b.Mechanic.User.FirstName,
+                    LastName = b.Mechanic.User.LastName,
+                    b.Mechanic.Specialization
+                }
+            })
+            .ToListAsync();
+
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -128,16 +163,62 @@ public class BookingsApiController : ControllerBase
             return BadRequest();
         }
 
-        var existing = await _context.Bookings.FindAsync(id);
+        var existing = await _context.Bookings
+            .Include(b => b.ServiceType)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
         if (existing == null)
         {
             return NotFound();
         }
 
-        _context.Entry(existing).CurrentValues.SetValues(booking);
-        existing.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        
+        var oldMechanicId = existing.MechanicId;
+        var newMechanicId = booking.MechanicId;
 
+        
+        existing.MechanicId = booking.MechanicId;
+        existing.Status = booking.Status;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        if (newMechanicId.HasValue && (!oldMechanicId.HasValue || oldMechanicId != newMechanicId))
+        {
+            
+            var existingWorkOrder = await _context.WorkOrders
+                .FirstOrDefaultAsync(wo => wo.BookingId == existing.Id);
+
+            if (existingWorkOrder == null)
+            {
+               
+                var workOrder = new WorkOrder
+                {
+                    BookingId = existing.Id,
+                    MechanicId = newMechanicId.Value,
+                    Status = WorkOrderStatus.Scheduled,
+                    Description = existing.ServiceType != null
+                        ? $"Service: {existing.ServiceType.Name}"
+                        : "Vehicle service booking",
+                    EstimatedDurationMinutes = existing.ServiceType?.EstimatedDurationMinutes,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.WorkOrders.Add(workOrder);
+            }
+            else
+            {
+               
+                existingWorkOrder.MechanicId = newMechanicId.Value;
+                existingWorkOrder.UpdatedAt = DateTime.UtcNow;
+            }
+
+            
+            if (existing.Status == BookingStatus.Pending)
+            {
+                existing.Status = BookingStatus.Confirmed;
+            }
+        }
+
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 

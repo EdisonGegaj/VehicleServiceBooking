@@ -21,10 +21,13 @@ public class WorkOrdersApiController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<WorkOrder>>> GetWorkOrders()
+    public async Task<ActionResult<IEnumerable<object>>> GetWorkOrders()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        IQueryable<WorkOrder> query = _context.WorkOrders;
+        IQueryable<WorkOrder> query = _context.WorkOrders
+            .Include(wo => wo.Booking)!.ThenInclude(b => b!.Client)
+            .Include(wo => wo.Booking)!.ThenInclude(b => b!.Vehicle)
+            .Include(wo => wo.Mechanic)!.ThenInclude(m => m!.User);
 
         if (User.IsInRole("Manager"))
         {
@@ -39,7 +42,7 @@ public class WorkOrdersApiController : ControllerBase
             }
             else
             {
-                return Ok(new List<WorkOrder>());
+                return Ok(new List<object>());
             }
         }
         else if (User.IsInRole("Client"))
@@ -51,7 +54,55 @@ public class WorkOrdersApiController : ControllerBase
             query = query.Where(wo => clientBookings.Contains(wo.BookingId));
         }
 
-        return await query.ToListAsync();
+        var result = await query
+            .OrderByDescending(wo => wo.CreatedAt)
+            .Select(wo => new
+            {
+                wo.Id,
+                wo.BookingId,
+                wo.MechanicId,
+                wo.Status,
+                wo.Description,
+                wo.MechanicNotes,
+                wo.EstimatedDurationMinutes,
+                wo.ActualDurationMinutes,
+                wo.LaborCost,
+                wo.PartsCost,
+                wo.TotalCost,
+                wo.StartedAt,
+                wo.CompletedAt,
+                wo.CreatedAt,
+                wo.UpdatedAt,
+                Booking = wo.Booking == null ? null : new
+                {
+                    wo.Booking.Id,
+                    wo.Booking.BookingDate,
+                    wo.Booking.BookingTime,
+                    wo.Booking.Status,
+                    Client = wo.Booking.Client == null ? null : new
+                    {
+                        wo.Booking.Client.FirstName,
+                        wo.Booking.Client.LastName
+                    },
+                    Vehicle = wo.Booking.Vehicle == null ? null : new
+                    {
+                        wo.Booking.Vehicle.Make,
+                        wo.Booking.Vehicle.Model,
+                        wo.Booking.Vehicle.LicensePlate,
+                        wo.Booking.Vehicle.Year
+                    }
+                },
+                Mechanic = wo.Mechanic == null || wo.Mechanic.User == null ? null : new
+                {
+                    wo.Mechanic.Id,
+                    FirstName = wo.Mechanic.User.FirstName,
+                    LastName = wo.Mechanic.User.LastName,
+                    wo.Mechanic.Specialization
+                }
+            })
+            .ToListAsync();
+
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -115,6 +166,8 @@ public class WorkOrdersApiController : ControllerBase
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var oldStatus = existing.Status;
+
         if (User.IsInRole("Mechanic") && !User.IsInRole("Manager"))
         {
             var mechanic = await _context.Mechanics.FirstOrDefaultAsync(m => m.UserId == userId);
@@ -122,15 +175,62 @@ public class WorkOrdersApiController : ControllerBase
             {
                 return Forbid();
             }
+
             existing.Status = workOrder.Status;
             existing.MechanicNotes = workOrder.MechanicNotes;
             existing.ActualDurationMinutes = workOrder.ActualDurationMinutes;
+
+            
+            if (workOrder.Status == WorkOrderStatus.InProgress && !existing.StartedAt.HasValue)
+            {
+                existing.StartedAt = DateTime.UtcNow;
+            }
+
+            if (workOrder.Status == WorkOrderStatus.Completed && !existing.CompletedAt.HasValue)
+            {
+                existing.CompletedAt = DateTime.UtcNow;
+
+                if (workOrder.ActualDurationMinutes.HasValue && mechanic.HourlyRate.HasValue)
+                {
+                    var hours = (decimal)workOrder.ActualDurationMinutes.Value / 60;
+                    existing.LaborCost = hours * mechanic.HourlyRate.Value;
+                }
+            }
+
             existing.UpdatedAt = DateTime.UtcNow;
         }
         else if (User.IsInRole("Manager"))
         {
-            _context.Entry(existing).CurrentValues.SetValues(workOrder);
+          
+            existing.Status = workOrder.Status;
+            existing.Description = workOrder.Description;
+            existing.MechanicNotes = workOrder.MechanicNotes;
+            existing.EstimatedDurationMinutes = workOrder.EstimatedDurationMinutes;
+            existing.ActualDurationMinutes = workOrder.ActualDurationMinutes;
+            existing.LaborCost = workOrder.LaborCost;
+            existing.PartsCost = workOrder.PartsCost;
+            existing.TotalCost = workOrder.TotalCost;
+            existing.StartedAt = workOrder.StartedAt;
+            existing.CompletedAt = workOrder.CompletedAt;
             existing.UpdatedAt = DateTime.UtcNow;
+
+          
+            if (workOrder.Status == WorkOrderStatus.Completed)
+            {
+                var laborCost = workOrder.LaborCost ?? 0;
+                var partsCost = workOrder.PartsCost ?? 0;
+                existing.TotalCost = laborCost + partsCost;
+            }
+
+            if (workOrder.Status == WorkOrderStatus.ReadyForPayment)
+            {
+                var laborCost = existing.LaborCost ?? 0;
+                var partsCost = existing.PartsCost ?? 0;
+                if (existing.TotalCost == null || existing.TotalCost == 0)
+                {
+                    existing.TotalCost = laborCost + partsCost;
+                }
+            }
         }
         else
         {
