@@ -2,11 +2,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using VehicleServiceBooking.Web.Data;
 using VehicleServiceBooking.Web.Models.Entities;
 
 namespace VehicleServiceBooking.Web.Controllers.Api;
+
+
+public class ScheduleRequestDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public int DayOfWeek { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; }
+}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -20,100 +29,62 @@ public class SchedulesApiController : ControllerBase
         _context = context;
     }
 
+
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MechanicSchedule>>> GetSchedules([FromQuery] int? mechanicId)
+    public async Task<ActionResult<IEnumerable<object>>> GetSchedules()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        IQueryable<MechanicSchedule> query = _context.MechanicSchedules;
-
-        if (mechanicId.HasValue)
-        {
-            query = query.Where(s => s.MechanicId == mechanicId.Value);
-        }
-
-        if (User.IsInRole("Mechanic") && !User.IsInRole("Manager"))
-        {
-            var mechanic = await _context.Mechanics.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (mechanic != null)
-            {
-                query = query.Where(s => s.MechanicId == mechanic.Id);
-            }
-            else
-            {
-                return Ok(new List<MechanicSchedule>());
-            }
-        }
-
-        return await query.ToListAsync();
+        return await _context.MechanicSchedules
+            .Include(s => s.Mechanic)
+            .ThenInclude(m => m.User) 
+            .Select(s => new {
+                s.Id,
+                FullName = s.Mechanic.User.FirstName + " " + s.Mechanic.User.LastName,
+                s.DayOfWeek,
+                s.StartTime,
+                s.EndTime
+            }).ToListAsync();
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<MechanicSchedule>> GetSchedule(int id)
-    {
-        var schedule = await _context.MechanicSchedules.FindAsync(id);
-        if (schedule == null)
-        {
-            return NotFound();
-        }
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (User.IsInRole("Mechanic") && !User.IsInRole("Manager"))
-        {
-            var mechanic = await _context.Mechanics.FirstOrDefaultAsync(m => m.UserId == userId);
-            if (mechanic == null || schedule.MechanicId != mechanic.Id)
-            {
-                return Forbid();
-            }
-        }
-
-        return Ok(schedule);
-    }
 
     [HttpPost]
     [Authorize(Roles = "Manager")]
-    public async Task<ActionResult<MechanicSchedule>> CreateSchedule([FromBody] MechanicSchedule schedule)
+    public async Task<IActionResult> CreateSchedule([FromBody] ScheduleRequestDto request)
     {
-        if (!ModelState.IsValid)
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+     
+        var mechanic = await _context.Mechanics
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m =>
+                m.User.FirstName.ToLower() == request.FirstName.ToLower() &&
+                m.User.LastName.ToLower() == request.LastName.ToLower());
+
+        if (mechanic == null)
         {
-            return BadRequest(ModelState);
+            return BadRequest("Mekaniku me këtë emër dhe mbiemër nuk u gjet në sistem.");
         }
+
+        var schedule = new MechanicSchedule
+        {
+            MechanicId = mechanic.Id,
+            DayOfWeek = (DayOfWeek)request.DayOfWeek,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime
+        };
 
         _context.MechanicSchedules.Add(schedule);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetSchedule), new { id = schedule.Id }, schedule);
+        return Ok(new { message = "Orari u krijua me sukses!", scheduleId = schedule.Id });
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Roles = "Manager")]
-    public async Task<IActionResult> UpdateSchedule(int id, [FromBody] MechanicSchedule schedule)
-    {
-        if (id != schedule.Id)
-        {
-            return BadRequest();
-        }
-
-        var existing = await _context.MechanicSchedules.FindAsync(id);
-        if (existing == null)
-        {
-            return NotFound();
-        }
-
-        _context.Entry(existing).CurrentValues.SetValues(schedule);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
+    
     [HttpDelete("{id}")]
     [Authorize(Roles = "Manager")]
     public async Task<IActionResult> DeleteSchedule(int id)
     {
         var schedule = await _context.MechanicSchedules.FindAsync(id);
-        if (schedule == null)
-        {
-            return NotFound();
-        }
+        if (schedule == null) return NotFound();
 
         _context.MechanicSchedules.Remove(schedule);
         await _context.SaveChangesAsync();
@@ -121,7 +92,3 @@ public class SchedulesApiController : ControllerBase
         return NoContent();
     }
 }
-
-
-
-
