@@ -58,15 +58,22 @@ const ClientDashboard = () => {
   };
 
   const handleSaveVehicle = async (data) => {
+    const vehicleToSave = {
+      ...data,
+      year: data.year ? parseInt(data.year) : null,
+      clientId: user?.id || user?.sub 
+    };
+
     try {
       if (editingVehicle) {
-        await vehicleService.update(editingVehicle.id, data);
+        await vehicleService.update(editingVehicle.id, vehicleToSave);
       } else {
-        await vehicleService.create(data);
+        await vehicleService.create(vehicleToSave);
       }
       setShowVehicleModal(false);
       loadData();
     } catch (error) {
+      console.error('API Error:', error.response?.data);
       alert('Error saving vehicle');
     }
   };
@@ -284,7 +291,7 @@ const VehicleModal = ({ vehicle, onClose, onSave }) => {
           </div>
           <div className="mb-4">
             <input
-              type="text"
+              type="number"
               placeholder="Year"
               value={formData.year || ''}
               onChange={(e) => setFormData({ ...formData, year: e.target.value })}
@@ -413,4 +420,3 @@ const BookingModal = ({ vehicles, serviceTypes, serviceCenters, onClose, onSave 
 };
 
 export default ClientDashboard;
-
