@@ -8,6 +8,7 @@ import { scheduleService } from '../services/scheduleService';
 import { bookingService } from '../services/bookingService';
 import { workOrderService } from '../services/workOrderService';
 import { paymentService } from '../services/paymentService';
+import { invoiceService } from '../services/invoiceService';
 
 const ManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState('servicecenters');
@@ -15,6 +16,8 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
 
   const tabs = [
     { id: 'servicecenters', label: 'Service Centers' },
@@ -63,6 +66,26 @@ const ManagerDashboard = () => {
         if (payload.startTime?.length === 5) payload.startTime += ":00";
         if (payload.endTime?.length === 5) payload.endTime += ":00";
       }
+      if (activeTab === 'bookings') {
+    payload.serviceCenterId = parseInt(payload.serviceCenterId);
+    payload.vehicleId = parseInt(payload.vehicleId);
+    payload.serviceTypeId = parseInt(payload.serviceTypeId);
+    if (payload.bookingTime?.length === 5) payload.bookingTime += ":00"; 
+      }
+
+      if (activeTab === 'workorders') {
+        payload.status = parseInt(payload.status);
+        if (payload.laborCost) payload.laborCost = parseFloat(payload.laborCost);
+        if (payload.partsCost) payload.partsCost = parseFloat(payload.partsCost);
+        if (payload.totalCost) payload.totalCost = parseFloat(payload.totalCost);
+        if (payload.estimatedDurationMinutes) payload.estimatedDurationMinutes = parseInt(payload.estimatedDurationMinutes);
+        if (payload.actualDurationMinutes) payload.actualDurationMinutes = parseInt(payload.actualDurationMinutes);
+      }
+
+      if (activeTab === 'vehicles') {
+          
+          payload.licensePlate = payload.licensePlate?.toUpperCase(); 
+      }
 
       if (editingItem) {
         await getService().update(editingItem.id, payload);
@@ -107,12 +130,14 @@ const ManagerDashboard = () => {
                    <td className="px-8 py-5 font-bold text-gray-800">
                       <div className="flex flex-col">
                         <span>
-                          {activeTab === 'mechanics' 
+                        {activeTab === 'bookings' 
+                          ? (item.mechanic ? `Mekaniku: ${item.mechanic.firstName} ${item.mechanic.lastName}` : "Mekaniku: I pacaktuar")
+                          : activeTab === 'mechanics' 
                             ? `${item.firstName} ${item.lastName}` 
                             : activeTab === 'schedules'
                               ? (item.fullName || `ID: ${item.id}`)
                               : (item.name || `ID: ${item.id}`)}
-                        </span>
+                      </span>
                         {activeTab === 'mechanics' && (
                           <div className="flex flex-wrap gap-2 mt-1.5 font-normal">
                             <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md border border-purple-100">
@@ -158,24 +183,51 @@ const ManagerDashboard = () => {
                             </span>
                           </div>
                         )}
-                  {activeTab === 'bookings' && (
-                    <div className="flex flex-col gap-1 mt-1.5 font-normal">
-                      <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 w-fit font-semibold uppercase">
-                        Status: {item.status}
+                 {activeTab === 'bookings' && (
+                    <div className="flex flex-col gap-1 mt-1 font-normal">
+                      
+                      <span className="text-sm font-bold text-emerald-700">
+                        Klienti: {item.client?.firstName} {item.client?.lastName}
                       </span>
+                      
+                     
+                      <span className="text-[11px] text-gray-600 font-semibold bg-gray-100 px-2 py-0.5 rounded w-fit">
+                        Targa: {item.vehicle?.licensePlate || 'Pa targë'}
+                      </span>
+
+                      
                       <span className="text-[11px] text-gray-500">
-                        Date: {new Date(item.bookingDate).toLocaleDateString()}
+                        Data: {new Date(item.bookingDate).toLocaleDateString()} në {item.bookingTime}
                       </span>
                     </div>
                   )}
                   {activeTab === 'workorders' && (
                     <div className="flex flex-col gap-1 mt-1.5 font-normal">
                       <span className="text-[10px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md border border-orange-100 w-fit font-semibold uppercase">
-                        Status: {item.status}
+                        Status: {item.status === 0 ? 'Scheduled' : item.status === 1 ? 'In Progress' : item.status === 2 ? 'Completed' : item.status === 3 ? 'Ready For Payment' : 'Closed'}
                       </span>
-                      <span className="text-[11px] text-gray-500">
-                        Car: {item.carModel} ({item.licensePlate})
-                      </span>
+                      {item.booking && (
+                        <>
+                          <span className="text-sm font-bold text-emerald-700">
+                            Klienti: {item.booking.client?.firstName} {item.booking.client?.lastName}
+                          </span>
+                          {item.booking.vehicle && (
+                            <span className="text-[11px] text-gray-600 font-semibold bg-gray-100 px-2 py-0.5 rounded w-fit">
+                              Makina: {item.booking.vehicle.make} {item.booking.vehicle.model} - {item.booking.vehicle.licensePlate}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {item.mechanic && (
+                        <span className="text-[11px] text-gray-500">
+                          Mekaniku: {item.mechanic.firstName} {item.mechanic.lastName} - {item.mechanic.specialization}
+                        </span>
+                      )}
+                      {item.totalCost && (
+                        <span className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100 w-fit font-semibold">
+                          Total: ${parseFloat(item.totalCost).toFixed(2)}
+                        </span>
+                      )}
                     </div>
                   )}
                   {activeTab === 'payments' && (
@@ -191,8 +243,41 @@ const ManagerDashboard = () => {
                       </div>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <button onClick={() => { setEditingItem(item); setShowModal(true); }} className="text-emerald-600 font-bold mr-4 hover:underline">Edit</button>
-                      <button onClick={() => getService().delete(item.id).then(loadData)} className="text-red-500 font-bold hover:underline">Delete</button>
+                      <button
+                        onClick={() => { setEditingItem(item); setShowModal(true); }}
+                        className="text-emerald-600 font-bold mr-4 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      {activeTab === 'workorders' && (item.status === 2 || item.status === 3) && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              
+                              const existingInvoice = await invoiceService.getByWorkOrder(item.id).catch(() => null);
+                              if (existingInvoice) {
+                                alert('Invoice already exists for this WorkOrder');
+                                return;
+                              }
+                              setSelectedWorkOrder(item);
+                              setShowInvoiceModal(true);
+                            } catch (error) {
+                              console.error('Error checking invoice:', error);
+                            }
+                          }}
+                          className="text-blue-600 font-bold mr-4 hover:underline"
+                        >
+                          Create Invoice
+                        </button>
+                      )}
+                      {activeTab !== 'bookings' && (
+                        <button
+                          onClick={() => getService().delete(item.id).then(loadData)}
+                          className="text-red-500 font-bold hover:underline"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -201,6 +286,23 @@ const ManagerDashboard = () => {
           )}
         </div>
         {showModal && <ManagerModal type={activeTab} item={editingItem} onClose={() => setShowModal(false)} onSave={handleSave} />}
+        {showInvoiceModal && selectedWorkOrder && (
+          <InvoiceModal
+            workOrder={selectedWorkOrder}
+            onClose={() => { setShowInvoiceModal(false); setSelectedWorkOrder(null); }}
+            onSave={async (invoiceData) => {
+              try {
+                await invoiceService.create(invoiceData);
+                alert('Invoice created successfully!');
+                setShowInvoiceModal(false);
+                setSelectedWorkOrder(null);
+                loadData();
+              } catch (error) {
+                alert(error.response?.data?.message || 'Error creating invoice');
+              }
+            }}
+          />
+        )}
       </div>
     </Layout>
   );
@@ -208,6 +310,15 @@ const ManagerDashboard = () => {
 
 const ManagerModal = ({ type, item, onClose, onSave }) => {
   const [formData, setFormData] = useState(item || {});
+  const [mechanics, setMechanics] = useState([]); 
+
+ 
+  useEffect(() => {
+    if (type === 'bookings') {
+      mechanicService.getAll().then(data => setMechanics(Array.isArray(data) ? data : []));
+    }
+  }, [type]);
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   return (
@@ -229,17 +340,17 @@ const ManagerModal = ({ type, item, onClose, onSave }) => {
 
           {type === 'mechanics' && (
   <>
-    <div className="grid grid-cols-2 gap-4">
-      <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
-      <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
-    </div>
-    <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} required />
-    {!item && <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required />}
-    <Input label="Specialization" name="specialization" value={formData.specialization} onChange={handleChange} required />
-    <div className="grid grid-cols-2 gap-4">
-      <Input label="Center ID" name="serviceCenterId" type="number" min="0" value={formData.serviceCenterId} onChange={handleChange} required />
-      <Input label="Rate ($)" name="hourlyRate" type="number" min="0" value={formData.hourlyRate} onChange={handleChange} required />
-    </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
+              <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
+            </div>
+            <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+            {!item && <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required />}
+            <Input label="Specialization" name="specialization" value={formData.specialization} onChange={handleChange} required />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Center ID" name="serviceCenterId" type="number" min="0" value={formData.serviceCenterId} onChange={handleChange} required />
+              <Input label="Rate ($)" name="hourlyRate" type="number" min="0" value={formData.hourlyRate} onChange={handleChange} required />
+            </div>
 
             <div className="w-full">
               <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Availability</label>
@@ -284,6 +395,57 @@ const ManagerModal = ({ type, item, onClose, onSave }) => {
               <Input label="Stock" name="stockQuantity" type="number" min="0" value={formData.stockQuantity} onChange={handleChange} required />
             </>
           )}
+         {type === 'bookings' && (
+            <>
+              <div className="w-full">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Cakto Mekanikun</label>
+                <select 
+                  name="mechanicId" 
+                  value={formData.mechanicId || ''} 
+                  onChange={(e) => setFormData({...formData, mechanicId: e.target.value ? parseInt(e.target.value) : null})}
+                  className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700 font-bold"
+                >
+                  <option value="">Zgjidh Mekanikun...</option>
+                  {mechanics.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.firstName} {m.lastName} - {m.specialization}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {type === 'workorders' && (
+            <>
+              <div className="w-full">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</label>
+                <select 
+                  name="status" 
+                  value={formData.status || 0} 
+                  onChange={handleChange}
+                  className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700 font-bold"
+                >
+                  <option value="0">Scheduled</option>
+                  <option value="1">In Progress</option>
+                  <option value="2">Completed</option>
+                  <option value="3">Ready For Payment</option>
+                  <option value="4">Closed</option>
+                </select>
+              </div>
+              <Input label="Description" name="description" value={formData.description} onChange={handleChange} />
+              <Input label="Mechanic Notes" name="mechanicNotes" value={formData.mechanicNotes} onChange={handleChange} type="textarea" />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Estimated Duration (min)" name="estimatedDurationMinutes" type="number" value={formData.estimatedDurationMinutes} onChange={handleChange} />
+                <Input label="Actual Duration (min)" name="actualDurationMinutes" type="number" value={formData.actualDurationMinutes} onChange={handleChange} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Labor Cost ($)" name="laborCost" type="number" step="0.01" value={formData.laborCost} onChange={handleChange} />
+                <Input label="Parts Cost ($)" name="partsCost" type="number" step="0.01" value={formData.partsCost} onChange={handleChange} />
+              </div>
+              <Input label="Total Cost ($)" name="totalCost" type="number" step="0.01" value={formData.totalCost} onChange={handleChange} />
+            </>
+          )}
 
           <div className="flex justify-end gap-3 pt-6">
             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 font-bold">Cancel</button>
@@ -295,10 +457,82 @@ const ManagerModal = ({ type, item, onClose, onSave }) => {
   );
 };
 
-const Input = ({ label, value, ...props }) => (
+const InvoiceModal = ({ workOrder, onClose, onSave }) => {
+  const [taxRate, setTaxRate] = useState(0.18);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({
+      workOrderId: workOrder.id,
+      taxRate: taxRate
+    });
+  };
+
+  const subTotal = workOrder.totalCost || 0;
+  const taxAmount = subTotal * taxRate;
+  const totalAmount = subTotal + taxAmount;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="px-8 py-6 border-b flex justify-between bg-gray-50/50">
+          <h3 className="text-xl font-bold">Create Invoice</h3>
+          <button onClick={onClose} className="text-2xl text-gray-400">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-8 space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Work Order ID: {workOrder.id}</p>
+            {workOrder.booking && (
+              <p className="text-sm text-gray-600">
+                Client: {workOrder.booking.client?.firstName} {workOrder.booking.client?.lastName}
+              </p>
+            )}
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Tax Rate (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={taxRate}
+                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700"
+                required
+              />
+            </div>
+            <div className="mt-4 space-y-2 pt-4 border-t">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="font-bold">${subTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tax ({((taxRate) * 100).toFixed(0)}%):</span>
+                <span className="font-bold">${taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t">
+                <span className="text-lg font-bold">Total:</span>
+                <span className="text-lg font-bold text-emerald-600">${totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-6">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 font-bold">Cancel</button>
+            <button type="submit" className="bg-emerald-600 text-white px-8 py-2 rounded-xl font-bold">Create Invoice</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const Input = ({ label, value, type, ...props }) => (
   <div className="w-full">
     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">{label}</label>
-    <input {...props} value={value || ''} className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700" />
+    {type === 'textarea' ? (
+      <textarea {...props} value={value || ''} className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700" rows={4} />
+    ) : (
+      <input {...props} type={type || 'text'} value={value || ''} className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700" />
+    )}
   </div>
 );
 

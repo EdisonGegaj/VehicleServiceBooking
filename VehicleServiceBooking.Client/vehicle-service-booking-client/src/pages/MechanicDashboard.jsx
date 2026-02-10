@@ -107,17 +107,43 @@ const WorkOrdersSection = ({ workOrders, onEdit, onUpdate }) => (
     {workOrders.map((wo) => (
       <li key={wo.id} className="px-6 py-4">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <div className="font-medium text-gray-900">Work Order #{wo.id}</div>
-            <div className="text-sm text-gray-500">Booking ID: {wo.bookingId}</div>
-            <div className="text-sm text-gray-500">Status: {WorkOrderStatus[wo.status]}</div>
+            {wo.booking && (
+              <>
+                <div className="text-sm font-semibold text-emerald-700 mt-1">
+                  Klienti: {wo.booking.client?.firstName} {wo.booking.client?.lastName}
+                </div>
+                {wo.booking.vehicle && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Makina: {wo.booking.vehicle.make} {wo.booking.vehicle.model} - {wo.booking.vehicle.licensePlate}
+                  </div>
+                )}
+                <div className="text-sm text-gray-500 mt-1">
+                  Data: {new Date(wo.booking.bookingDate).toLocaleDateString()} në {wo.booking.bookingTime}
+                </div>
+              </>
+            )}
+            <div className="text-sm text-gray-500 mt-1">
+              Status: {wo.status === 0 ? 'Scheduled' : wo.status === 1 ? 'In Progress' : wo.status === 2 ? 'Completed' : wo.status === 3 ? 'Ready For Payment' : 'Closed'}
+            </div>
+            {wo.description && (
+              <div className="text-sm text-gray-600 mt-1">Description: {wo.description}</div>
+            )}
             {wo.mechanicNotes && (
-              <div className="text-sm text-gray-600 mt-2">{wo.mechanicNotes}</div>
+              <div className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded">
+                <strong>Shënime:</strong> {wo.mechanicNotes}
+              </div>
+            )}
+            {wo.totalCost && (
+              <div className="text-sm font-semibold text-blue-700 mt-2">
+                Total Cost: ${parseFloat(wo.totalCost).toFixed(2)}
+              </div>
             )}
           </div>
           <button
             onClick={() => onEdit(wo)}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm ml-4"
           >
             Update Status
           </button>
@@ -132,10 +158,22 @@ const BookingsSection = ({ bookings }) => (
     {bookings.map((booking) => (
       <li key={booking.id} className="px-6 py-4">
         <div className="font-medium text-gray-900">Booking #{booking.id}</div>
-        <div className="text-sm text-gray-500">
-          Date: {new Date(booking.bookingDate).toLocaleDateString()} at {booking.bookingTime}
+        {booking.client && (
+          <div className="text-sm font-semibold text-emerald-700 mt-1">
+            Klienti: {booking.client.firstName} {booking.client.lastName}
+          </div>
+        )}
+        {booking.vehicle && (
+          <div className="text-sm text-gray-600 mt-1">
+            Makina: {booking.vehicle.licensePlate}
+          </div>
+        )}
+        <div className="text-sm text-gray-500 mt-1">
+          Data: {new Date(booking.bookingDate).toLocaleDateString()} në {booking.bookingTime}
         </div>
-        <div className="text-sm text-gray-500">Status: {booking.status}</div>
+        <div className="text-sm text-gray-500 mt-1">
+          Status: {booking.status === 0 ? 'Pending' : booking.status === 1 ? 'Confirmed' : booking.status === 2 ? 'In Progress' : booking.status === 3 ? 'Completed' : 'Cancelled'}
+        </div>
       </li>
     ))}
   </ul>
