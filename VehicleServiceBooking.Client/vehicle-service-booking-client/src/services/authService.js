@@ -1,18 +1,24 @@
-import api from "./api";
+import api from './api';
 
 export const authService = {
-  login: async (credentials) => {
-    const res = await api.post("/Auth/login", credentials);
-    return res.data; 
+  async login(credentials) {
+    const response = await api.post('/Auth/login', credentials);
+    return response.data;
   },
 
-  registerClient: async (data) => {
-    const res = await api.post("/Auth/register-client", data);
-    return res.data; 
+  async registerClient(data) {
+    const response = await api.post('/Auth/register-client', data);
+    return response.data;
   },
 
-  registerMechanic: async (data) => {
-    const res = await api.post("/Auth/register-mechanic", data);
-    return res.data;
+  async registerMechanic(data) {
+    const response = await api.post('/Auth/register-mechanic', data);
+    return response.data;
+  },
+
+  async getCurrentUser() {
+    const response = await api.get('/Auth/me');
+    return response.data;
   },
 };
+

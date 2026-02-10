@@ -107,9 +107,11 @@ const ManagerDashboard = () => {
                    <td className="px-8 py-5 font-bold text-gray-800">
                       <div className="flex flex-col">
                         <span>
-                          {activeTab === 'mechanics' || activeTab === 'schedules' 
+                          {activeTab === 'mechanics' 
                             ? `${item.firstName} ${item.lastName}` 
-                            : (item.name || `ID: ${item.id}`)}
+                            : activeTab === 'schedules'
+                              ? (item.fullName || `ID: ${item.id}`)
+                              : (item.name || `ID: ${item.id}`)}
                         </span>
                         {activeTab === 'mechanics' && (
                           <div className="flex flex-wrap gap-2 mt-1.5 font-normal">
