@@ -58,22 +58,15 @@ const ClientDashboard = () => {
   };
 
   const handleSaveVehicle = async (data) => {
-    const vehicleToSave = {
-      ...data,
-      year: data.year ? parseInt(data.year) : null,
-      clientId: user?.id || user?.sub 
-    };
-
     try {
       if (editingVehicle) {
-        await vehicleService.update(editingVehicle.id, vehicleToSave);
+        await vehicleService.update(editingVehicle.id, data);
       } else {
-        await vehicleService.create(vehicleToSave);
+        await vehicleService.create(data);
       }
       setShowVehicleModal(false);
       loadData();
     } catch (error) {
-      console.error('API Error:', error.response?.data);
       alert('Error saving vehicle');
     }
   };
@@ -84,11 +77,30 @@ const ClientDashboard = () => {
 
   const handleSaveBooking = async (data) => {
     try {
-      await bookingService.create(data);
+      
+      const bookingData = {
+        VehicleId: parseInt(data.vehicleId),
+        ServiceTypeId: parseInt(data.serviceTypeId),
+        ServiceCenterId: parseInt(data.serviceCenterId),
+        BookingDate: data.bookingDate,
+
+        BookingTime: data.bookingTime.length === 5 ? `${data.bookingTime}:00` : data.bookingTime,
+        Status: 0, 
+      };
+
+      console.log("Duke dërguar këto të dhëna:", bookingData);
+
+      await bookingService.create(bookingData);
       setShowBookingModal(false);
       loadData();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating booking');
+      
+      console.error('Detajet e gabimit 400:', error.response?.data);
+
+      const errorMessage = error.response?.data?.message || 
+                           (error.response?.data?.errors ? "Format i gabuar i të dhënave" : "Error creating booking");
+
+      alert(errorMessage);
     }
   };
 
@@ -291,7 +303,7 @@ const VehicleModal = ({ vehicle, onClose, onSave }) => {
           </div>
           <div className="mb-4">
             <input
-              type="number"
+              type="text"
               placeholder="Year"
               value={formData.year || ''}
               onChange={(e) => setFormData({ ...formData, year: e.target.value })}
