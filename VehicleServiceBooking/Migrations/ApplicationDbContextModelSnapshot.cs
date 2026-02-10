@@ -296,7 +296,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.Invoice", b =>
@@ -340,7 +340,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("WorkOrderId");
 
-                    b.ToTable("Invoices");
+                    b.ToTable("Invoices", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.Mechanic", b =>
@@ -384,7 +384,7 @@ namespace VehicleServiceBooking.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Mechanics");
+                    b.ToTable("Mechanics", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.MechanicSchedule", b =>
@@ -414,7 +414,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("MechanicId");
 
-                    b.ToTable("MechanicSchedules");
+                    b.ToTable("MechanicSchedules", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.Part", b =>
@@ -462,7 +462,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Parts");
+                    b.ToTable("Parts", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.Payment", b =>
@@ -503,7 +503,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("WorkOrderId");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.ServiceCenter", b =>
@@ -544,7 +544,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ServiceCenters");
+                    b.ToTable("ServiceCenters", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.ServiceType", b =>
@@ -583,7 +583,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("ServiceCenterId");
 
-                    b.ToTable("ServiceTypes");
+                    b.ToTable("ServiceTypes", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.Vehicle", b =>
@@ -634,7 +634,7 @@ namespace VehicleServiceBooking.Migrations
                     b.HasIndex("LicensePlate")
                         .IsUnique();
 
-                    b.ToTable("Vehicles");
+                    b.ToTable("Vehicles", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.WorkOrder", b =>
@@ -695,7 +695,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("MechanicId");
 
-                    b.ToTable("WorkOrders");
+                    b.ToTable("WorkOrders", (string)null);
                 });
 
             modelBuilder.Entity("VehicleServiceBooking.Web.Models.Entities.WorkOrderPart", b =>
@@ -730,7 +730,7 @@ namespace VehicleServiceBooking.Migrations
 
                     b.HasIndex("WorkOrderId");
 
-                    b.ToTable("WorkOrderParts");
+                    b.ToTable("WorkOrderParts", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
