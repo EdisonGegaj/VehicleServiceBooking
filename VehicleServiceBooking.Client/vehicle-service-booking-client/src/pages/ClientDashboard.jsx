@@ -4,9 +4,6 @@ import { vehicleService } from '../services/vehicleService';
 import { bookingService } from '../services/bookingService';
 import { serviceTypeService } from '../services/serviceTypeService';
 import { serviceCenterService } from '../services/serviceCenterService';
-import { paymentService } from '../services/paymentService';
-import { invoiceService } from '../services/invoiceService';
-import { workOrderService } from '../services/workOrderService';
 import { useAuth } from '../contexts/AuthContext';
 import { BookingStatus } from '../types';
 
@@ -14,16 +11,12 @@ const ClientDashboard = () => {
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [invoices, setInvoices] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [serviceCenters, setServiceCenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('vehicles');
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [editingVehicle, setEditingVehicle] = useState(null);
 
   useEffect(() => {
@@ -35,21 +28,8 @@ const ClientDashboard = () => {
     try {
       setVehicles(await vehicleService.getAll());
       setBookings(await bookingService.getAll());
-      setPayments(await paymentService.getAll());
       setServiceTypes(await serviceTypeService.getAll(true));
       setServiceCenters(await serviceCenterService.getAll());
-      
-      // Load invoices for work orders
-      try {
-        const workOrders = await workOrderService.getAll();
-        const invoicePromises = workOrders.map(wo => 
-          invoiceService.getByWorkOrder(wo.id).catch(() => null)
-        );
-        const invoiceResults = await Promise.all(invoicePromises);
-        setInvoices(invoiceResults.filter(inv => inv !== null));
-      } catch (error) {
-        console.error('Error loading invoices:', error);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -160,13 +140,16 @@ const ClientDashboard = () => {
   const tabs = [
     { id: 'vehicles', label: 'My Vehicles' },
     { id: 'bookings', label: 'My Bookings' },
-    { id: 'payments', label: 'Payments & Invoices' },
   ];
 
   return (
     <Layout>
       <div className="px-4 py-6">
+<<<<<<< HEAD
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Pershendetje!!</h1>
+=======
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Client Dashboard</h1>
+>>>>>>> 93f4279274bc2e9e08d2ff0c87ef6b48738b7c9b
 
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
@@ -225,16 +208,6 @@ const ClientDashboard = () => {
                   onCancel={handleCancelBooking}
                 />
               )}
-              {activeTab === 'payments' && (
-                <PaymentsSection
-                  invoices={invoices}
-                  payments={payments}
-                  onPay={(invoice) => {
-                    setSelectedInvoice(invoice);
-                    setShowPaymentModal(true);
-                  }}
-                />
-              )}
             </div>
           )}
         </div>
@@ -254,27 +227,6 @@ const ClientDashboard = () => {
             serviceCenters={serviceCenters}
             onClose={() => setShowBookingModal(false)}
             onSave={handleSaveBooking}
-          />
-        )}
-
-        {showPaymentModal && selectedInvoice && (
-          <PaymentModal
-            invoice={selectedInvoice}
-            onClose={() => {
-              setShowPaymentModal(false);
-              setSelectedInvoice(null);
-            }}
-            onSave={async (paymentData) => {
-              try {
-                await paymentService.create(paymentData);
-                alert('Payment submitted successfully!');
-                setShowPaymentModal(false);
-                setSelectedInvoice(null);
-                loadData();
-              } catch (error) {
-                alert(error.response?.data?.message || 'Error submitting payment');
-              }
-            }}
           />
         )}
       </div>
@@ -498,184 +450,6 @@ const BookingModal = ({ vehicles, serviceTypes, serviceCenters, onClose, onSave 
             </button>
             <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-md">
               Create Booking
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const PaymentsSection = ({ invoices, payments, onPay }) => {
-  // Calculate total paid per invoice
-  const getTotalPaid = (workOrderId) => {
-    return payments
-      .filter(p => p.workOrderId === workOrderId && p.status === 1)
-      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
-  };
-
-  return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h3 className="text-lg font-bold mb-4">Invoices</h3>
-        <ul className="divide-y divide-gray-200">
-          {invoices.map((invoice) => {
-            const totalPaid = getTotalPaid(invoice.workOrderId);
-            const remaining = parseFloat(invoice.totalAmount) - totalPaid;
-            return (
-              <li key={invoice.id} className="py-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-gray-900">Invoice #{invoice.invoiceNumber}</div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Work Order ID: {invoice.workOrderId}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-2">
-                      <div>Subtotal: ${parseFloat(invoice.subTotal).toFixed(2)}</div>
-                      <div>Tax: ${parseFloat(invoice.taxAmount).toFixed(2)}</div>
-                      <div className="font-semibold">Total: ${parseFloat(invoice.totalAmount).toFixed(2)}</div>
-                      <div className="text-emerald-600 mt-1">
-                        Paid: ${totalPaid.toFixed(2)}
-                      </div>
-                      {remaining > 0 && (
-                        <div className="text-red-600 font-semibold mt-1">
-                          Remaining: ${remaining.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {remaining > 0 && (
-                    <button
-                      onClick={() => onPay(invoice)}
-                      className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm"
-                    >
-                      Pay Now
-                    </button>
-                  )}
-                  {remaining <= 0 && (
-                    <span className="text-green-600 font-semibold">Paid</span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-bold mb-4">Payment History</h3>
-        <ul className="divide-y divide-gray-200">
-          {payments.map((payment) => (
-            <li key={payment.id} className="py-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium text-gray-900">Payment #{payment.id}</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    Work Order ID: {payment.workOrderId}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Amount: ${parseFloat(payment.amount).toFixed(2)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Method: {payment.method === 0 ? 'Cash' : payment.method === 1 ? 'Credit Card' : payment.method === 2 ? 'Debit Card' : payment.method === 3 ? 'Bank Transfer' : 'Online'}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Status: {payment.status === 0 ? 'Pending' : payment.status === 1 ? 'Completed' : payment.status === 2 ? 'Failed' : 'Refunded'}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Date: {new Date(payment.paymentDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-};
-
-const PaymentModal = ({ invoice, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    workOrderId: invoice.workOrderId,
-    amount: parseFloat(invoice.totalAmount).toFixed(2),
-    method: 0,
-    transactionId: '',
-    notes: ''
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave({
-      ...formData,
-      amount: parseFloat(formData.amount),
-      method: parseInt(formData.method)
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <h3 className="text-lg font-bold mb-4">Make Payment</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Invoice</label>
-            <div className="text-sm text-gray-600">
-              Invoice #{invoice.invoiceNumber} - Total: ${parseFloat(invoice.totalAmount).toFixed(2)}
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              max={parseFloat(invoice.totalAmount)}
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-            <select
-              value={formData.method}
-              onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
-              required
-            >
-              <option value="0">Cash</option>
-              <option value="1">Credit Card</option>
-              <option value="2">Debit Card</option>
-              <option value="3">Bank Transfer</option>
-              <option value="4">Online</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID (Optional)</label>
-            <input
-              type="text"
-              value={formData.transactionId}
-              onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
-              rows={3}
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-md">
-              Cancel
-            </button>
-            <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-md">
-              Submit Payment
             </button>
           </div>
         </form>
