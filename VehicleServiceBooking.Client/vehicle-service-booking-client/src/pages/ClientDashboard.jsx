@@ -145,11 +145,7 @@ const ClientDashboard = () => {
   return (
     <Layout>
       <div className="px-4 py-6">
-<<<<<<< HEAD
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Pershendetje!!</h1>
-=======
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Client Dashboard</h1>
->>>>>>> 93f4279274bc2e9e08d2ff0c87ef6b48738b7c9b
 
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
