@@ -54,7 +54,11 @@ const ManagerDashboard = () => {
 
   const handleSave = async (formData) => {
     try {
-    let payload = { ...formData };
+      const id = editingItem ? editingItem.id : null;
+      let { mechanic, client, vehicle, booking, ...payload } = formData;
+      if (id) {
+        payload.id = id;
+      }
 
     if (activeTab === 'mechanics') {
       payload.serviceCenterId = parseInt(payload.serviceCenterId);
@@ -62,10 +66,10 @@ const ManagerDashboard = () => {
       payload.isAvailable = formData.isAvailable === undefined ? true : formData.isAvailable;
     }
       if (activeTab === 'schedules') {
-        payload.dayOfWeek = parseInt(payload.dayOfWeek);
-        if (payload.startTime?.length === 5) payload.startTime += ":00";
-        if (payload.endTime?.length === 5) payload.endTime += ":00";
-      }
+      payload.dayOfWeek = parseInt(payload.dayOfWeek);
+      if (payload.startTime?.length === 5) payload.startTime += ":00";
+      if (payload.endTime?.length === 5) payload.endTime += ":00";
+    }
       if (activeTab === 'bookings') {
     payload.serviceCenterId = parseInt(payload.serviceCenterId);
     payload.vehicleId = parseInt(payload.vehicleId);
@@ -313,11 +317,23 @@ const ManagerModal = ({ type, item, onClose, onSave }) => {
   const [mechanics, setMechanics] = useState([]); 
 
  
-  useEffect(() => {
-    if (type === 'bookings') {
-      mechanicService.getAll().then(data => setMechanics(Array.isArray(data) ? data : []));
-    }
-  }, [type]);
+useEffect(() => {
+  if (type === 'bookings' || type === 'schedules') {
+    mechanicService.getAll().then(data => {
+      const mechanicsList = Array.isArray(data) ? data : [];
+      setMechanics(mechanicsList);
+      if (item && item.fullName && !formData.firstName) {
+        const names = item.fullName.split(" ");
+        setFormData(prev => ({
+          ...prev,
+          firstName: names[0],
+          lastName: names[1] || ""
+        }));
+      }
+    });
+  }
+}, [type, item]);
+
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -368,19 +384,55 @@ const ManagerModal = ({ type, item, onClose, onSave }) => {
         )}
 
           {type === 'schedules' && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
-                <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
-              </div>
-              <Input label="Day (0-6)" name="dayOfWeek" type="number" min="0" max="6" value={formData.dayOfWeek} onChange={handleChange} required />
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Start Time" name="startTime" type="time" value={formData.startTime} onChange={handleChange} required />
-                <Input label="End Time" name="endTime" type="time" value={formData.endTime} onChange={handleChange} required />
-              </div>
+  <>
+              {!item && (
+                <div className="w-full">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                    Zgjidh Mekanikun
+                  </label>
+                  <select 
+                    name="mechanicId" 
+                    value={formData.mechanicId || ""} 
+                    className="w-full bg-gray-50 border-gray-100 border-2 px-4 py-2.5 rounded-xl focus:border-emerald-500 outline-none transition-all text-gray-700 font-bold"
+                    onChange={(e) => {
+                      const selectedId = parseInt(e.target.value);
+                      const selected = mechanics.find(m => m.id === selectedId);
+                      if (selected) {
+                        setFormData({ 
+                          ...formData, 
+                          mechanicId: selected.id,
+                          firstName: selected.firstName || selected.user?.firstName, 
+                          lastName: selected.lastName || selected.user?.lastName 
+                        });
+                      }
+                    }}
+                    required
+                  >
+                    <option value="">Zgjidh...</option>
+                    {mechanics.map(m => (
+                      <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              
+              {item && (
+                <div className="w-full bg-gray-50 p-3 rounded-xl border border-gray-100 mb-2">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Mekaniku 
+                  </label>
+                  <div className="text-gray-700 font-bold">
+                    {item.fullName || (item.firstName + " " + item.lastName)}
+                  </div>
+                </div>
+              )}
+
+             <Input label="Dita e Javës" name="dayOfWeek" type="number" min="0" max="6" value={formData.dayOfWeek} onChange={handleChange} placeholder="psh 0=Dielë, 1=Hënë..." autoComplete="off" required />
+              <Input label="Start Time" name="startTime" type="time" value={formData.startTime} onChange={handleChange} required />
+              <Input label="End Time" name="endTime" type="time" value={formData.endTime} onChange={handleChange} required />
             </>
           )}
-
           {type === 'servicetypes' && (
             <>
               <Input label="Name" name="name" value={formData.name} onChange={handleChange} required />

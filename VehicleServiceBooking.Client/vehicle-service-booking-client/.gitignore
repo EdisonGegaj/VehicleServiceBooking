@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# .NET Specific
+**/bin/
+**/obj/
+[Bb]in/
+[Oo]bj/
+*.dll
+*.exe
+*.pdb   git rm -r --cached .
+*.user
+*.suo
+.vs/
