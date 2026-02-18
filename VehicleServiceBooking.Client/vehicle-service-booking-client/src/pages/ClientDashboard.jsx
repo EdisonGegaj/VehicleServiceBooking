@@ -58,41 +58,41 @@ const ClientDashboard = () => {
   };
 
   const handleSaveVehicle = async (data) => {
-  try {
-    
-    const vehicleData = {
-      Make: data.make,
-      Model: data.model,
-      LicensePlate: data.licensePlate,
-      Year: data.year ? parseInt(data.year) : null,
-      Color: data.color || "",
-      VIN: data.vin || "" 
-    };
+    try {
+      const vehicleData = {
+        Id: editingVehicle ? editingVehicle.id : 0, 
+        Make: data.make,
+        Model: data.model,
+        LicensePlate: data.licensePlate,
+        Year: data.year ? parseInt(data.year) : null,
+        Color: data.color || "",
+        VIN: data.vin || "" 
+      };
 
-    console.log("Duke dërguar makinën:", vehicleData);
+      console.log("Duke dërguar makinën:", vehicleData);
 
-    if (editingVehicle) {
-      await vehicleService.update(editingVehicle.id, vehicleData);
-    } else {
-      await vehicleService.create(vehicleData);
+      if (editingVehicle) {
+        await vehicleService.update(editingVehicle.id, vehicleData);
+      } else {
+        await vehicleService.create(vehicleData);
+      }
+      
+      setShowVehicleModal(false);
+      loadData();
+    } catch (error) {
+      const serverErrors = error.response?.data?.errors;
+      console.error('Gabimet specifike:', serverErrors);
+      
+      if (serverErrors) {
+        const errorMessages = Object.entries(serverErrors)
+          .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+          .join('\n');
+        alert("Validimi dështoi:\n" + errorMessages);
+      } else {
+        alert(error.response?.data?.message || "Gabim gjatë ruajtjes së makinës.");
+      }
     }
-    
-    setShowVehicleModal(false);
-    loadData();
-  } catch (error) {
-    const serverErrors = error.response?.data?.errors;
-    console.error('Gabimet specifike:', serverErrors);
-    
-    if (serverErrors) {
-      const errorMessages = Object.entries(serverErrors)
-        .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
-        .join('\n');
-      alert("Validimi dështoi:\n" + errorMessages);
-    } else {
-      alert("Gabim gjatë ruajtjes së makinës.");
-    }
-  }
-};
+  };
 
   const handleCreateBooking = () => {
     setShowBookingModal(true);
@@ -100,13 +100,11 @@ const ClientDashboard = () => {
 
   const handleSaveBooking = async (data) => {
     try {
-      
       const bookingData = {
         VehicleId: parseInt(data.vehicleId),
         ServiceTypeId: parseInt(data.serviceTypeId),
         ServiceCenterId: parseInt(data.serviceCenterId),
         BookingDate: data.bookingDate,
-
         BookingTime: data.bookingTime.length === 5 ? `${data.bookingTime}:00` : data.bookingTime,
         Status: 0, 
       };
@@ -117,12 +115,9 @@ const ClientDashboard = () => {
       setShowBookingModal(false);
       loadData();
     } catch (error) {
-      
       console.error('Detajet e gabimit 400:', error.response?.data);
-
       const errorMessage = error.response?.data?.message || 
                            (error.response?.data?.errors ? "Format i gabuar i të dhënave" : "Error creating booking");
-
       alert(errorMessage);
     }
   };
@@ -145,7 +140,7 @@ const ClientDashboard = () => {
   return (
     <Layout>
       <div className="px-4 py-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Pershendetje!!</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Pershendetje!</h1>
 
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
