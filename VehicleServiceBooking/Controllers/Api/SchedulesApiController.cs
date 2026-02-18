@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+ï»¿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using VehicleServiceBooking.Web.Data;
 using VehicleServiceBooking.Web.Models.Entities;
 
@@ -33,16 +34,24 @@ public class SchedulesApiController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<object>>> GetSchedules()
     {
-        return await _context.MechanicSchedules
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var query = _context.MechanicSchedules
             .Include(s => s.Mechanic)
-            .ThenInclude(m => m.User) 
-            .Select(s => new {
-                s.Id,
-                FullName = s.Mechanic.User.FirstName + " " + s.Mechanic.User.LastName,
-                s.DayOfWeek,
-                s.StartTime,
-                s.EndTime
-            }).ToListAsync();
+            .ThenInclude(m => m.User)
+            .AsQueryable();
+
+        if (User.IsInRole("Mechanic"))
+        {
+            query = query.Where(s => s.Mechanic.UserId == userId);
+        }
+
+        return await query.Select(s => new {
+            s.Id,
+            FullName = s.Mechanic.User.FirstName + " " + s.Mechanic.User.LastName,
+            s.DayOfWeek,
+            s.StartTime,
+            s.EndTime
+        }).ToListAsync();
     }
 
 
@@ -61,7 +70,7 @@ public class SchedulesApiController : ControllerBase
 
         if (mechanic == null)
         {
-            return BadRequest("Mekaniku me këtë emër dhe mbiemër nuk u gjet në sistem.");
+            return BadRequest("Mekaniku me kÃ«tÃ« emÃ«r dhe mbiemÃ«r nuk u gjet nÃ« sistem.");
         }
 
         var schedule = new MechanicSchedule
