@@ -20,8 +20,9 @@ export const bookingService = {
     await api.put(`/BookingsApi/${id}`, booking);
   },
 
+  // Kthen response.data nga server (p.sh. { message, status, statusName })
   async cancel(id) {
-    await api.post(`/BookingsApi/${id}/cancel`);
+    const response = await api.post(`/BookingsApi/${id}/cancel`);
+    return response.data;
   },
 };
-

@@ -32,6 +32,7 @@ public class BookingsApiController : ControllerBase
 
         if (User.IsInRole("Manager"))
         {
+            query = query.Where(b => b.Status != BookingStatus.Cancelled);
             if (startDate.HasValue && endDate.HasValue)
             {
                 query = query.Where(b => b.BookingDate >= startDate.Value && b.BookingDate <= endDate.Value);
@@ -63,6 +64,7 @@ public class BookingsApiController : ControllerBase
                 b.BookingDate,
                 b.BookingTime,
                 b.Status,
+                StatusName = b.Status.ToString(),
                 b.ServiceCenterId,
                 b.VehicleId,
                 b.ServiceTypeId,
@@ -172,24 +174,20 @@ public class BookingsApiController : ControllerBase
             return NotFound();
         }
 
-        
         var oldMechanicId = existing.MechanicId;
         var newMechanicId = booking.MechanicId;
 
-        
         existing.MechanicId = booking.MechanicId;
         existing.Status = booking.Status;
         existing.UpdatedAt = DateTime.UtcNow;
 
         if (newMechanicId.HasValue && (!oldMechanicId.HasValue || oldMechanicId != newMechanicId))
         {
-            
             var existingWorkOrder = await _context.WorkOrders
                 .FirstOrDefaultAsync(wo => wo.BookingId == existing.Id);
 
             if (existingWorkOrder == null)
             {
-               
                 var workOrder = new WorkOrder
                 {
                     BookingId = existing.Id,
@@ -206,12 +204,10 @@ public class BookingsApiController : ControllerBase
             }
             else
             {
-               
                 existingWorkOrder.MechanicId = newMechanicId.Value;
                 existingWorkOrder.UpdatedAt = DateTime.UtcNow;
             }
 
-            
             if (existing.Status == BookingStatus.Pending)
             {
                 existing.Status = BookingStatus.Confirmed;
@@ -250,10 +246,6 @@ public class BookingsApiController : ControllerBase
         booking.CancelledAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Booking cancelled successfully." });
+        return Ok(new { message = "Booking cancelled successfully.", status = booking.Status, statusName = booking.Status.ToString() });
     }
 }
-
-
-
-
