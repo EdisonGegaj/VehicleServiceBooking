@@ -235,40 +235,38 @@ const ManagerDashboard = () => {
                     </div>
                   )}
                  {activeTab === 'payments' && (
-  <div className="flex flex-col gap-1 mt-1.5 font-normal">
-    {/* Emri i Klientit - duke hyrë në strukturën e saktë që dërgon Controller-i yt */}
-    <span className="text-sm font-bold text-gray-800">
-      Klienti: {
-        item.workOrder?.booking?.client 
-          ? `${item.workOrder.booking.client.firstName} ${item.workOrder.booking.client.lastName}` 
-          : "I panjohur"
-      }
-    </span>
+                  <div className="flex flex-col gap-1 mt-1.5 font-normal">  
+                    <span className="text-sm font-bold text-gray-800">
+                      Klienti: {
+                        item.workOrder?.booking?.client 
+                          ? `${item.workOrder.booking.client.firstName} ${item.workOrder.booking.client.lastName}` 
+                          : "I panjohur"
+                      }
+                    </span>
 
-    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100 w-fit font-semibold uppercase">
-      Shuma: ${item.amount?.toFixed(2)}
-    </span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100 w-fit font-semibold uppercase">
+                      Shuma: ${item.amount?.toFixed(2)}
+                    </span>
 
-    <span className="text-[11px] text-gray-600">
-      Metoda: <span className="text-blue-600 font-bold">
-        {/* Përdorim 'item.method' sepse ashtu e ka emrin në C# Controller-in tënd */}
-        {{
-          0: 'Cash',
-          1: 'Credit Card',
-          2: 'Debit Card',
-          3: 'Bank Transfer',
-          4: 'Online'
-        }[item.method] || 'E papërcaktuar'}
-      </span>
-    </span>
+                    <span className="text-[11px] text-gray-600">
+                      Metoda: <span className="text-blue-600 font-bold">
+                        {{
+                          0: 'Cash',
+                          1: 'Credit Card',
+                          2: 'Debit Card',
+                          3: 'Bank Transfer',
+                          4: 'Online'
+                        }[item.method] || 'E papërcaktuar'}
+                      </span>
+                    </span>
 
-    {item.transactionId && (
-      <span className="text-[10px] text-gray-400 italic">
-        ID: {item.transactionId}
-      </span>
-    )}
-  </div>
-)}
+                    {item.transactionId && (
+                      <span className="text-[10px] text-gray-400 italic">
+                        Nr. Transaksionit: {item.transactionId}
+                      </span>
+                    )}
+                  </div>
+                )}
                       </div>
                     </td>
                     <td className="px-8 py-5 text-right">
