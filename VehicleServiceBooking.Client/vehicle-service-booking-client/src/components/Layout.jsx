@@ -20,10 +20,12 @@ const Layout = ({ children }) => {
     return '/';
   };
 
+  const isClient = user?.roles.includes('Client');
+
   return (
     <div 
-      className="min-h-screen w-full bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      className={`min-h-screen w-full ${isClient ? 'bg-cover bg-center bg-fixed' : 'bg-gray-50'}`}
+      style={isClient ? { backgroundImage: `url(${bgImage})` } : {}}
     >
       <nav className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
