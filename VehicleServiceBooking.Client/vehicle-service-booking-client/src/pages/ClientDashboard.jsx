@@ -8,6 +8,7 @@ import { paymentService } from '../services/paymentService';
 import { invoiceService } from '../services/invoiceService';
 import { workOrderService } from '../services/workOrderService';
 import { useAuth } from '../contexts/AuthContext';
+import bgImage from "../assets/photo3.jpg";
 
 const ClientDashboard = () => {
   const { user } = useAuth();
@@ -212,7 +213,7 @@ const ClientDashboard = () => {
   return (
     <Layout>
   <div className="px-4 py-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">PERSHËNDETJE!</h1>
+        <h1 className="text-3xl font-bold text-primary-600">PERSHËNDETJE!</h1>
 
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
