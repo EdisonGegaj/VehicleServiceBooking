@@ -8,10 +8,7 @@ import { paymentService } from '../services/paymentService';
 import { invoiceService } from '../services/invoiceService';
 import { workOrderService } from '../services/workOrderService';
 import { useAuth } from '../contexts/AuthContext';
-<<<<<<< ours
 import bgImage from "../assets/photo3.jpg";
-=======
->>>>>>> theirs
 
 const ClientDashboard = () => {
   const { user } = useAuth();
